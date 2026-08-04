@@ -1,0 +1,14 @@
+// The demo board on synthetic data. `npm run demo` to run it locally; see wrangler.jsonc
+// for the real deploy config.
+//
+// DEMO=true means no Jira credentials and no cron. KV is never read in demo mode, but
+// `wrangler deploy` still validates the binding, so deploying this needs one real (and
+// permanently empty) namespace id below. Locally the "demo" placeholder is fine.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "departures-demo",
+  "main": "demo/index.js",
+  "compatibility_date": "2026-07-01",
+  "vars": { "DEMO": "true" },
+  "kv_namespaces": [{ "binding": "KPIS", "id": "demo", "preview_id": "demo" }]
+}

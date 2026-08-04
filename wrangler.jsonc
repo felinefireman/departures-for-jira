@@ -1,0 +1,25 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "departures",
+  "main": "src/index.js",
+  "compatibility_date": "2026-07-01",
+  "observability": { "enabled": true },
+
+  // Non-secret config. The API TOKEN is NOT here — it's a secret:
+  //   local dev:  put JIRA_TOKEN in .dev.vars  (gitignored)
+  //   deployed:   wrangler secret put JIRA_TOKEN
+  "vars": {
+    "JIRA_HOST": "your-org.atlassian.net",
+    "JIRA_EMAIL": "you@example.com",
+    "DEMO": "false"
+  },
+
+  "triggers": { "crons": ["0 */3 * * *"] },
+
+  // Stores the computed snapshot so the cron pull and the TVs share one copy.
+  // Create with:  npx wrangler kv namespace create KPIS
+  // then paste the returned id below (and preview_id for `wrangler dev --remote`).
+  "kv_namespaces": [
+    { "binding": "KPIS", "id": "<your-kv-namespace-id>", "preview_id": "<your-preview-kv-namespace-id>" }
+  ]
+}

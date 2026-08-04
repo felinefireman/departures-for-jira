@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Departures · config builder</title>
+<style>
+  :root {
+    --bg:#000; --surface:#141518; --surface-2:#1c1e22; --border:#33363b; --sep:#585858;
+    --text:#f8fafc; --muted:#8a8f98; --faint:#5b6672;
+    --accent:#22c55e; --info:#5b8def; --warn:#e3a008; --danger:#ef4444;
+    --sans:'Helvetica Neue', Helvetica, Arial, sans-serif;
+    --mono:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--text); font-family:var(--sans); -webkit-font-smoothing:antialiased; }
+
+  header {
+    display:flex; align-items:baseline; justify-content:space-between; gap:1rem;
+    padding:1rem 1.5rem; border-bottom:2px solid var(--sep); position:sticky; top:0; background:#000; z-index:10;
+  }
+  .wordmark { font-weight:700; font-size:1.1rem; letter-spacing:.02em; display:flex; align-items:center; gap:.5rem; }
+  .wordmark .d { color:var(--accent); font-size:.8em; }
+  .sub { color:var(--muted); font-size:.68rem; text-transform:uppercase; letter-spacing:.18em; font-weight:600; }
+
+  main { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:1.5rem; padding:1.5rem; max-width:1500px; margin:0 auto; align-items:start; }
+  @media (max-width:1000px) { main { grid-template-columns:1fr; } }
+
+  section { background:var(--surface); border:1px solid var(--border); border-radius:.6rem; padding:1.1rem 1.2rem; margin-bottom:1.1rem; }
+  h2 { font-size:.7rem; text-transform:uppercase; letter-spacing:.18em; color:var(--muted); font-weight:700; margin-bottom:.9rem; }
+  .hint { color:var(--faint); font-size:.76rem; margin-top:.5rem; line-height:1.45; }
+
+  label { display:block; color:var(--muted); font-size:.66rem; text-transform:uppercase; letter-spacing:.12em; font-weight:700; margin-bottom:.3rem; }
+  input[type=text], input[type=number], select {
+    width:100%; background:var(--surface-2); color:var(--text); border:1px solid var(--border);
+    border-radius:.35rem; padding:.5rem .6rem; font-family:var(--sans); font-size:.9rem;
+  }
+  input:focus-visible, select:focus-visible, button:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+  input[type=color] { width:2.6rem; height:2.1rem; padding:2px; background:var(--surface-2); border:1px solid var(--border); border-radius:.35rem; }
+  .grid { display:grid; gap:.7rem; }
+  .g2 { grid-template-columns:1fr 1fr; } .g3 { grid-template-columns:1fr 1fr 1fr; } .g4 { grid-template-columns:1fr 1fr 1fr 1fr; }
+  @media (max-width:600px) { .g2, .g3, .g4 { grid-template-columns:1fr; } }
+
+  button {
+    background:var(--surface-2); color:var(--text); border:1px solid var(--border);
+    border-radius:.35rem; padding:.45rem .8rem; font-family:var(--sans); font-size:.78rem;
+    font-weight:700; text-transform:uppercase; letter-spacing:.1em; cursor:pointer;
+  }
+  button:hover { border-color:var(--sep); }
+  button.primary { background:var(--accent); border-color:var(--accent); color:#000; }
+  button.x { padding:.4rem .55rem; color:var(--muted); }
+  button.x:hover { color:var(--danger); border-color:var(--danger); }
+  .actions { display:flex; gap:.5rem; flex-wrap:wrap; margin-top:.8rem; }
+
+  .rows { display:flex; flex-direction:column; gap:.55rem; }
+  .row { display:grid; grid-template-columns:1.3fr 1fr 1.3fr auto; gap:.5rem; align-items:center; }
+  @media (max-width:700px) { .row { grid-template-columns:1fr 1fr; } }
+
+  .spotrow { display:grid; grid-template-columns:1.2fr 1fr auto auto auto; gap:.5rem; align-items:center; }
+  @media (max-width:700px) { .spotrow { grid-template-columns:1fr 1fr; } }
+  .inline-check { display:flex; gap:.35rem; align-items:center; margin:0; text-transform:none; letter-spacing:0; font-size:.8rem; white-space:nowrap; }
+
+  .bullet { width:1.9rem; height:1.9rem; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:.85rem; flex-shrink:0; }
+  .arearow { display:flex; align-items:center; gap:.6rem; }
+  .arearow .nm { flex:1; font-size:.85rem; font-weight:600; }
+
+  .scene { display:flex; align-items:center; gap:.6rem; padding:.45rem 0; border-bottom:1px solid var(--border); }
+  .scene:last-child { border-bottom:0; }
+  .scene .nm { flex:1; font-size:.88rem; font-weight:600; }
+  .scene .ty { color:var(--faint); font-family:var(--mono); font-size:.72rem; }
+  input[type=checkbox] { width:1rem; height:1rem; accent-color:var(--accent); }
+
+  .out { position:sticky; top:5rem; }
+  pre {
+    background:#0b0c0e; border:1px solid var(--border); border-radius:.5rem; padding:1rem;
+    font-family:var(--mono); font-size:.76rem; line-height:1.55; overflow:auto; max-height:60vh;
+    white-space:pre; color:#dfe5ec;
+  }
+  .meter { display:flex; align-items:center; gap:.8rem; margin-bottom:.8rem; }
+  .meter .n { font-size:1.9rem; font-weight:800; font-variant-numeric:tabular-nums; line-height:1; }
+  .meter .lbl { color:var(--muted); font-size:.68rem; text-transform:uppercase; letter-spacing:.12em; font-weight:700; }
+  .track { flex:1; background:#26282c; border-radius:4px; height:8px; overflow:hidden; }
+  .fill { height:100%; background:var(--accent); border-radius:4px; transition:width .2s ease; }
+  .fill.warn { background:var(--warn); } .fill.danger { background:var(--danger); }
+
+  .issues { list-style:none; display:flex; flex-direction:column; gap:.35rem; margin-top:.6rem; }
+  .issues li { font-size:.78rem; color:var(--warn); padding-left:1rem; position:relative; line-height:1.4; }
+  .issues li::before { content:"!"; position:absolute; left:0; font-weight:700; }
+  .issues li.ok { color:var(--accent); } .issues li.ok::before { content:"✓"; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="wordmark"><span class="d">◆</span>DEPARTURES</div>
+    <div class="sub">Config builder</div>
+  </div>
+  <div class="sub" id="tally"></div>
+</header>
+
+<main>
+  <div>
+    <section>
+      <h2>Masthead</h2>
+      <div class="grid g2">
+        <div><label for="bname">Wordmark</label><input type="text" id="bname" value="ACME"></div>
+        <div><label for="bglyph">Glyph</label><input type="text" id="bglyph" value="◆" maxlength="2"></div>
+        <div><label for="bsub">Subtitle</label><input type="text" id="bsub" value="COMPANY PULSE"></div>
+        <div><label for="bfoot">Footer</label><input type="text" id="bfoot" value="Acme Inc"></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Jira</h2>
+      <div class="grid g2">
+        <div><label for="done">Done statuses (comma separated)</label><input type="text" id="done" value="Done"></div>
+        <div><label for="bug">Bug issue type</label><input type="text" id="bug" value="Bug"></div>
+      </div>
+      <p class="hint">Only statuses that mean genuinely finished. Leave out Rejected or Won't Do, or throughput reads high. Run <code>npm run discover</code> to list what your instance actually uses.</p>
+    </section>
+
+    <section>
+      <h2>Teams</h2>
+      <div class="rows" id="teams"></div>
+      <div class="actions"><button id="addteam">Add team</button></div>
+      <p class="hint">One row per leaderboard entry. Several project keys on one team are summed. Keys are uppercase, like <code>SUP</code> or <code>PLAT</code>.</p>
+    </section>
+
+    <section>
+      <h2>Area colours</h2>
+      <div class="rows" id="areas"></div>
+      <p class="hint">Collected from the areas above. Defaults are NYC subway line colours. Tick the box where a light fill needs black text.</p>
+    </section>
+
+    <section>
+      <h2>Scenes</h2>
+      <div id="scenes"></div>
+      <p class="hint">Momentum, Flow, The Race and Backlog Health each appear at most once. Spotlights, below, are repeatable.</p>
+    </section>
+
+    <section>
+      <h2>Spotlights</h2>
+      <div class="rows" id="spotlights"></div>
+      <div class="actions"><button id="addspot">Add spotlight</button></div>
+      <p class="hint">A spotlight pulls projects out of the leaderboard onto their own card. Untick Sprints for projects without Jira Software boards and the ring is dropped rather than left empty. Add as many as you need.</p>
+    </section>
+
+    <section>
+      <h2>Display</h2>
+      <div class="grid g4">
+        <div><label for="goal">Weekly goal</label><input type="number" id="goal" value="25" min="1"></div>
+        <div><label for="rot">Rotate (sec)</label><input type="number" id="rot" value="15" min="1"></div>
+        <div><label for="poll">Poll (sec)</label><input type="number" id="poll" value="120" min="1"></div>
+        <div><label for="page">Teams per page</label><input type="number" id="page" value="5" min="1"></div>
+        <div><label for="weeks">Flow weeks</label><input type="number" id="weeks" value="4" min="1" max="12"></div>
+        <div style="grid-column:span 2"><label for="tz">Time zone</label><input type="text" id="tz" value="America/New_York"></div>
+        <div style="grid-column:span 2"><label for="loc">Locale</label><input type="text" id="loc" value="en-US"></div>
+      </div>
+      <p class="hint">Poll is how often an open tab re-reads the stored snapshot; it costs a KV read, not a Jira query.</p>
+    </section>
+  </div>
+
+  <div class="out">
+    <section>
+      <h2>Subrequest budget</h2>
+      <div class="meter">
+        <div><div class="n" id="qn">0</div><div class="lbl">queries</div></div>
+        <div class="track"><div class="fill" id="qfill" style="width:0%"></div></div>
+      </div>
+      <p class="hint" id="qhint"></p>
+      <ul class="issues" id="issues"></ul>
+    </section>
+
+    <section>
+      <h2>config.js</h2>
+      <pre id="out"></pre>
+      <div class="actions">
+        <button class="primary" id="copy">Copy</button>
+        <button id="download">Download</button>
+      </div>
+      <p class="hint">Save this over <code>config.js</code> at the repo root, then <code>npm run dev</code>.</p>
+    </section>
+  </div>
+</main>
+
+<script>
+// Subway line colours, cycled as new areas appear.
+var PALETTE = ["#0039A6", "#FF6319", "#00933C", "#B933AD", "#FCCC0A", "#EE352E", "#6CBE45", "#996633"];
+var SCENE_TYPES = [
+  ["momentum", "Momentum", "goal ring, monthly total, WoW/MoM"],
+  ["flow", "Flow & Trend", "net flow, weekly created vs completed"],
+  ["race", "The Race", "team leaderboard, auto-paging"],
+  ["backlogHealth", "Backlog Health", "open/overdue/due, aging funnel"],
+];
+var KEY_RE = /^[A-Z][A-Z0-9_]*$/;
+
+var teams = [
+  { name: "Support", area: "Service", keys: "SUP" },
+  { name: "Platform", area: "Product", keys: "PLAT" },
+  { name: "Design", area: "Product", keys: "DES" },
+  { name: "Finance", area: "Corporate", keys: "FIN" },
+  { name: "People", area: "Corporate", keys: "HR" },
+];
+var areaColors = {};
+var darkText = {};
+var enabled = { momentum: true, flow: true, race: true, backlogHealth: true };
+var spotlights = [
+  { name: "Engineering", keys: "ENG", sprints: true, bugs: true },
+];
+
+var $ = function (id) { return document.getElementById(id); };
+
+function areasInUse() {
+  var seen = [];
+  teams.forEach(function (t) {
+    var a = t.area.trim();
+    if (a && seen.indexOf(a) === -1) seen.push(a);
+  });
+  return seen;
+}
+
+function keysOf(s) {
+  return String(s).toUpperCase().split(/[,\s]+/).map(function (k) { return k.trim(); }).filter(Boolean);
+}
+
+function slugify(name) {
+  return String(name).toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+}
+
+// DOM nodes, not innerHTML strings: a value never needs escaping if it's never parsed as
+// markup, and an input built once keeps focus and mid-drag state across a keystroke.
+function renderTeams() {
+  var host = $("teams");
+  host.innerHTML = "";
+  teams.forEach(function (t, i) {
+    var row = document.createElement("div");
+    row.className = "row";
+
+    var name = document.createElement("input");
+    name.type = "text"; name.placeholder = "Team name"; name.value = t.name;
+    name.oninput = function () { teams[i].name = this.value; refresh(); };
+
+    var area = document.createElement("input");
+    area.type = "text"; area.placeholder = "Area"; area.value = t.area;
+    // Rebuilds the areas list, not this one: rebuilding this row too would drop the
+    // keystroke that's still landing in it.
+    area.oninput = function () { teams[i].area = this.value; renderAreas(); refresh(); };
+
+    var keys = document.createElement("input");
+    keys.type = "text"; keys.placeholder = "KEY, KEY2"; keys.value = t.keys;
+    keys.oninput = function () { teams[i].keys = this.value; refresh(); };
+
+    var remove = document.createElement("button");
+    remove.className = "x"; remove.title = "Remove"; remove.textContent = "✕";
+    remove.onclick = function () { teams.splice(i, 1); rebuild(); };
+
+    row.append(name, area, keys, remove);
+    host.appendChild(row);
+  });
+}
+
+function renderAreas() {
+  var host = $("areas");
+  host.innerHTML = "";
+  areasInUse().forEach(function (area, i) {
+    if (!areaColors[area]) areaColors[area] = PALETTE[i % PALETTE.length];
+    var row = document.createElement("div");
+    row.className = "arearow";
+
+    var bullet = document.createElement("span");
+    bullet.className = "bullet";
+    bullet.style.background = areaColors[area];
+    bullet.style.color = darkText[area] ? "#000" : "#fff";
+    bullet.textContent = area.charAt(0).toUpperCase();
+
+    var nm = document.createElement("span");
+    nm.className = "nm"; nm.textContent = area;
+
+    var color = document.createElement("input");
+    color.type = "color"; color.value = areaColors[area];
+    // Patches the swatch in place rather than calling renderAreas() again, which would
+    // recreate this same input mid-drag and end the drag.
+    color.oninput = function () {
+      areaColors[area] = this.value;
+      bullet.style.background = this.value;
+      refresh();
+    };
+
+    var label = document.createElement("label");
+    label.className = "inline-check";
+    var cb = document.createElement("input");
+    cb.type = "checkbox"; cb.checked = !!darkText[area];
+    cb.onchange = function () {
+      darkText[area] = this.checked;
+      bullet.style.color = this.checked ? "#000" : "#fff";
+      refresh();
+    };
+    label.append(cb, document.createTextNode(" Black text"));
+
+    row.append(bullet, nm, color, label);
+    host.appendChild(row);
+  });
+}
+
+function renderScenes() {
+  var host = $("scenes");
+  host.innerHTML = "";
+  SCENE_TYPES.forEach(function (s) {
+    var row = document.createElement("div");
+    row.className = "scene";
+
+    var cb = document.createElement("input");
+    cb.type = "checkbox"; cb.checked = enabled[s[0]];
+    cb.onchange = function () { enabled[s[0]] = this.checked; refresh(); };
+
+    var nm = document.createElement("span");
+    nm.className = "nm";
+    nm.textContent = s[1] + " ";
+    var ty = document.createElement("span");
+    ty.className = "ty"; ty.textContent = s[2];
+    nm.appendChild(ty);
+
+    row.append(cb, nm);
+    host.appendChild(row);
+  });
+}
+
+function renderSpotlights() {
+  var host = $("spotlights");
+  host.innerHTML = "";
+  spotlights.forEach(function (s, i) {
+    var row = document.createElement("div");
+    row.className = "row spotrow";
+
+    var name = document.createElement("input");
+    name.type = "text"; name.placeholder = "Spotlight name"; name.value = s.name;
+    name.oninput = function () { spotlights[i].name = this.value; refresh(); };
+
+    var keys = document.createElement("input");
+    keys.type = "text"; keys.placeholder = "KEY, KEY2"; keys.value = s.keys;
+    keys.oninput = function () { spotlights[i].keys = this.value; refresh(); };
+
+    var sprintsLabel = document.createElement("label");
+    sprintsLabel.className = "inline-check";
+    var sprintsCb = document.createElement("input");
+    sprintsCb.type = "checkbox"; sprintsCb.checked = s.sprints;
+    sprintsCb.onchange = function () { spotlights[i].sprints = this.checked; refresh(); };
+    sprintsLabel.append(sprintsCb, document.createTextNode(" Sprints"));
+
+    var bugsLabel = document.createElement("label");
+    bugsLabel.className = "inline-check";
+    var bugsCb = document.createElement("input");
+    bugsCb.type = "checkbox"; bugsCb.checked = s.bugs;
+    bugsCb.onchange = function () { spotlights[i].bugs = this.checked; refresh(); };
+    bugsLabel.append(bugsCb, document.createTextNode(" Bugs"));
+
+    var remove = document.createElement("button");
+    remove.className = "x"; remove.title = "Remove"; remove.textContent = "✕";
+    remove.onclick = function () { spotlights.splice(i, 1); rebuild(); };
+
+    row.append(name, keys, sprintsLabel, bugsLabel, remove);
+    host.appendChild(row);
+  });
+}
+
+function build() {
+  var doneList = $("done").value.split(",").map(function (s) { return s.trim(); }).filter(Boolean);
+  var scenes = [];
+  SCENE_TYPES.forEach(function (s) {
+    if (enabled[s[0]]) scenes.push({ type: s[0] });
+  });
+  spotlights.forEach(function (s) {
+    scenes.push({
+      type: "spotlight",
+      name: s.name.trim(),
+      keys: keysOf(s.keys),
+      sprints: s.sprints,
+      bugs: s.bugs,
+    });
+  });
+  return {
+    brand: { name: $("bname").value, glyph: $("bglyph").value, sub: $("bsub").value, footer: $("bfoot").value },
+    jira: { doneStatuses: doneList, bugIssueType: $("bug").value.trim() },
+    teams: teams.map(function (t) { return { name: t.name.trim(), area: t.area.trim(), keys: keysOf(t.keys) }; }),
+    areaColors: areasInUse().reduce(function (o, a) { o[a] = areaColors[a]; return o; }, {}),
+    darkTextAreas: areasInUse().filter(function (a) { return darkText[a]; }),
+    goals: { weeklyShipped: Number($("goal").value) },
+    display: {
+      rotateMs: Number($("rot").value) * 1000,
+      pollMs: Number($("poll").value) * 1000,
+      racePageSize: Number($("page").value),
+      flowWeeks: Number($("weeks").value),
+      timeZone: $("tz").value.trim(),
+      locale: $("loc").value.trim(),
+    },
+    scenes: scenes,
+  };
+}
+
+// Mirrors buildQueries() in src/kpis.js. Worth showing, because the query count is the
+// one number that decides whether the board updates in one cron run or several.
+function countQueries(c) {
+  var n = 9;
+  n += 2 * c.display.flowWeeks;
+  var keys = {};
+  c.teams.forEach(function (t) { t.keys.forEach(function (k) { keys[k] = 1; }); });
+  n += 2 * Object.keys(keys).length;
+  c.scenes.forEach(function (s) {
+    if (s.type !== "spotlight") return;
+    n += 4 + (s.sprints ? 2 : 0) + (s.bugs ? 3 : 0);
+  });
+  return n;
+}
+
+// Mirrors validateConfig() in src/config.js, so "Valid" here means the Worker will
+// actually boot rather than reject the config on startup.
+function problems(c) {
+  var out = [];
+  var seen = {};
+  if (!c.teams.length) out.push("Add at least one team.");
+  c.teams.forEach(function (t) {
+    if (!t.name) out.push("A team is missing a name.");
+    if (!t.area) out.push('Team "' + t.name + '" has no area.');
+    if (!t.keys.length) out.push('Team "' + t.name + '" has no project keys.');
+    t.keys.forEach(function (k) {
+      if (!KEY_RE.test(k)) out.push('"' + k + '" is not a valid project key: uppercase letters, digits and underscores, starting with a letter.');
+      if (seen[k]) out.push('"' + k + '" is used by both ' + seen[k] + " and " + t.name + ", so it would be counted twice.");
+      else seen[k] = t.name;
+    });
+  });
+
+  var slugsSeen = {};
+  c.scenes.forEach(function (s) {
+    if (s.type !== "spotlight") return;
+    if (!s.keys.length) out.push('Spotlight "' + (s.name || "<unnamed>") + '" has no project keys.');
+    var slug = slugify(s.name);
+    if (!slug) { out.push("A spotlight name needs at least one letter or digit."); return; }
+    s.keys.forEach(function (k) {
+      if (!KEY_RE.test(k)) out.push('Spotlight key "' + k + '" is not a valid project key.');
+      if (seen[k]) out.push('"' + k + '" is in both ' + seen[k] + " and a spotlight, so it would be counted twice.");
+    });
+    if (slugsSeen[slug]) out.push('Spotlights "' + slugsSeen[slug] + '" and "' + s.name + '" both reduce to the query id prefix "spot_' + slug + '_".');
+    else slugsSeen[slug] = s.name;
+  });
+
+  if (!c.scenes.length) out.push("Enable at least one scene.");
+  if (!c.jira.doneStatuses.length) out.push("Add at least one done status.");
+  if (!c.jira.bugIssueType) out.push("Bug issue type is required.");
+  if (!(c.goals.weeklyShipped > 0)) out.push("Weekly goal must be greater than 0.");
+  if (!Number.isInteger(c.display.flowWeeks) || c.display.flowWeeks < 1) out.push("Flow weeks must be a whole number, at least 1.");
+  else if (c.display.flowWeeks > 12) out.push("Flow weeks above 12 means hundreds of queries; cap it at 12.");
+  if (!Number.isInteger(c.display.racePageSize) || c.display.racePageSize < 1) out.push("Teams per page must be a whole number, at least 1.");
+  if (!(c.display.rotateMs >= 1000)) out.push("Rotate must be at least 1 second.");
+  if (!(c.display.pollMs >= 1000)) out.push("Poll must be at least 1 second.");
+  try { Intl.DateTimeFormat(undefined, { timeZone: c.display.timeZone }); }
+  catch (e) { out.push('"' + c.display.timeZone + '" is not an IANA time zone.'); }
+  return out;
+}
+
+function serialise(c) {
+  var esc = function (s) { return String(s).replace(/\\/g, "\\\\").replace(/"/g, '\\"'); };
+  var q = function (s) { return '"' + esc(s) + '"'; };
+  var L = [];
+  L.push("export default {");
+  L.push("  brand: { name: " + q(c.brand.name) + ", glyph: " + q(c.brand.glyph) + ", sub: " + q(c.brand.sub) + ", footer: " + q(c.brand.footer) + " },");
+  L.push("");
+  L.push("  jira: {");
+  L.push("    doneStatuses: [" + c.jira.doneStatuses.map(q).join(", ") + "],");
+  L.push("    bugIssueType: " + q(c.jira.bugIssueType) + ",");
+  L.push("  },");
+  L.push("");
+  var w = Math.max.apply(null, c.teams.map(function (t) { return t.name.length; }).concat([4]));
+  var wa = Math.max.apply(null, c.teams.map(function (t) { return t.area.length; }).concat([4]));
+  L.push("  teams: [");
+  c.teams.forEach(function (t) {
+    L.push("    { name: " + (q(t.name) + ",").padEnd(w + 4) +
+      " area: " + (q(t.area) + ",").padEnd(wa + 4) +
+      " keys: [" + t.keys.map(q).join(", ") + "] },");
+  });
+  L.push("  ],");
+  L.push("");
+  L.push("  areaColors: {");
+  Object.keys(c.areaColors).forEach(function (a) { L.push("    " + q(a) + ": " + q(c.areaColors[a]) + ","); });
+  L.push("  },");
+  L.push("  darkTextAreas: [" + c.darkTextAreas.map(q).join(", ") + "],");
+  L.push("");
+  L.push("  goals: { weeklyShipped: " + c.goals.weeklyShipped + " },");
+  L.push("");
+  L.push("  display: {");
+  L.push("    rotateMs: " + c.display.rotateMs + ",");
+  L.push("    pollMs: " + c.display.pollMs + ",");
+  L.push("    racePageSize: " + c.display.racePageSize + ",");
+  L.push("    flowWeeks: " + c.display.flowWeeks + ",");
+  L.push("    timeZone: " + q(c.display.timeZone) + ",");
+  L.push("    locale: " + q(c.display.locale) + ",");
+  L.push("  },");
+  L.push("");
+  L.push("  scenes: [");
+  c.scenes.forEach(function (s) {
+    if (s.type !== "spotlight") { L.push("    { type: " + q(s.type) + " },"); return; }
+    L.push("    { type: \"spotlight\", name: " + q(s.name) + ", keys: [" + s.keys.map(q).join(", ") +
+      "], sprints: " + s.sprints + ", bugs: " + s.bugs + " },");
+  });
+  L.push("  ],");
+  L.push("};");
+  return L.join("\n") + "\n";
+}
+
+// Recomputes output text, the query meter and the issues list. No DOM structure changes,
+// so it's safe to call on every keystroke without disturbing focus.
+function refresh() {
+  var c = build();
+  var text = serialise(c);
+  $("out").textContent = text;
+
+  var n = countQueries(c);
+  var chunks = Math.max(1, Math.ceil(n / 40));
+  $("qn").textContent = n;
+  var pct = Math.min(100, (n / 40) * 100);
+  var fill = $("qfill");
+  fill.style.width = pct + "%";
+  fill.className = "fill" + (chunks > 2 ? " danger" : chunks > 1 ? " warn" : "");
+  $("qhint").textContent = chunks === 1
+    ? "Fits one cron run, so the whole board refreshes together."
+    : "Spans " + chunks + " cron runs: the board still works, but a full refresh takes " + chunks + " cycles. Shorten the cron interval in wrangler.jsonc to compensate.";
+  $("tally").textContent = c.teams.length + " teams · " + c.scenes.length + " scenes · " + n + " queries";
+
+  var issues = problems(c);
+  var ul = $("issues");
+  ul.innerHTML = "";
+  if (!issues.length) {
+    var ok = document.createElement("li");
+    ok.className = "ok";
+    ok.textContent = "Valid: this will pass validateConfig on startup.";
+    ul.appendChild(ok);
+  } else {
+    issues.slice(0, 12).forEach(function (m) {
+      var li = document.createElement("li");
+      li.textContent = m;
+      ul.appendChild(li);
+    });
+  }
+}
+
+// Rebuilds the row lists themselves; only add/remove needs this, since it changes how
+// many inputs exist.
+function rebuild() {
+  renderTeams();
+  renderAreas();
+  renderScenes();
+  renderSpotlights();
+  refresh();
+}
+
+["bname","bglyph","bsub","bfoot","done","bug","goal","rot","poll","page","weeks","tz","loc"]
+  .forEach(function (id) { $(id).oninput = function () { refresh(); }; });
+
+$("addteam").onclick = function () { teams.push({ name: "", area: "", keys: "" }); rebuild(); };
+$("addspot").onclick = function () { spotlights.push({ name: "", keys: "", sprints: true, bugs: true }); rebuild(); };
+
+$("copy").onclick = function () {
+  navigator.clipboard.writeText($("out").textContent).then(function () {
+    var b = $("copy"), t = b.textContent;
+    b.textContent = "Copied";
+    setTimeout(function () { b.textContent = t; }, 1200);
+  });
+};
+
+$("download").onclick = function () {
+  var blob = new Blob([$("out").textContent], { type: "text/javascript" });
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "config.js";
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+
+rebuild();
+</script>
+</body>
+</html>

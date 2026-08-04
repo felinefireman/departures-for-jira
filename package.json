@@ -1,0 +1,36 @@
+{
+  "name": "departures",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "A wallboard for Jira",
+  "license": "AGPL-3.0-only",
+  "author": "felinefireman",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/felinefireman/departures-for-jira"
+  },
+  "bugs": {
+    "url": "https://github.com/felinefireman/departures-for-jira/issues"
+  },
+  "homepage": "https://github.com/felinefireman/departures-for-jira",
+  "keywords": [
+    "jira",
+    "dashboard",
+    "wallboard",
+    "kpi",
+    "cloudflare-worker"
+  ],
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "dev": "wrangler dev",
+    "demo": "wrangler dev --config wrangler.demo.jsonc",
+    "deploy": "wrangler deploy",
+    "test": "node --test",
+    "discover": "node discover.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^4.20.0"
+  }
+}
