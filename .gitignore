@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Secrets — JIRA_TOKEN and REFRESH_KEY live here for local dev
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+.env
+.env.*
+
+# Wrangler local state and simulated KV
+.wrangler/
+
+# Config builder scratch output
+.tmp-builder-*.js
+
+# Working docs, not published
+HANDOFF.md
+SPEC.md
+
+# OS / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Logs
+*.log
+npm-debug.log*
